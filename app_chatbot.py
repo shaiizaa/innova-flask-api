@@ -77,11 +77,59 @@ def chatbot():
                 thread_id=thread.id,
                 run_id=run.id
             )
-            if run_status.status == "completed":
+            if run_status.status == "completed" or run_status.status == "requires_action":
                 break
             time.sleep(1)
         else:
             return jsonify({"error": "OpenAI Run Timeout"}), 504
+
+        # Handle function calling if needed
+        if run_status.status == "requires_action" and run_status.required_action and run_status.required_action.submit_tool_outputs:
+            tool_calls = run_status.required_action.submit_tool_outputs.tool_calls
+            outputs = []
+
+            for tool_call in tool_calls:
+                if tool_call.function.name == "get_crm_data":
+                    arguments = tool_call.function.arguments
+                    project_name = arguments.get("project_name")
+                    unit_number = arguments.get("unit_number")
+
+                    crm_response = requests.post(
+                        "http://localhost:5000/get_crm_data",
+                        json={
+                            "project_name": project_name,
+                            "unit_number": unit_number
+                        }
+                    )
+
+                    if crm_response.status_code == 200:
+                        crm_data = crm_response.json()
+                        outputs.append({
+                            "tool_call_id": tool_call.id,
+                            "output": f"Project: {crm_data['project_name']}, Unit: {crm_data['unit_number']}, Status: {crm_data['sales_status']}"
+                        })
+                    else:
+                        outputs.append({
+                            "tool_call_id": tool_call.id,
+                            "output": "Error fetching CRM data."
+                        })
+
+            openai.beta.threads.runs.submit_tool_outputs(
+                thread_id=thread.id,
+                run_id=run.id,
+                tool_outputs=outputs
+            )
+
+            for _ in range(30):
+                final_run = openai.beta.threads.runs.retrieve(
+                    thread_id=thread.id,
+                    run_id=run.id
+                )
+                if final_run.status == "completed":
+                    break
+                time.sleep(1)
+            else:
+                return jsonify({"error": "Final Run Timeout"}), 504
 
         messages = openai.beta.threads.messages.list(thread_id=thread.id)
 
@@ -117,7 +165,7 @@ def get_crm_data():
         }
 
         response = requests.get(crm_url, headers=headers)
-        print("CRM Raw Response Text:", response.text)  # 🔥 Add this line
+        print("CRM Raw Response Text:", response.text)
         response.raise_for_status()
 
         data = response.json().get("data")

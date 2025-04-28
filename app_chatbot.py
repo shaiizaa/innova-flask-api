@@ -7,7 +7,7 @@ import json
 
 app = Flask(__name__)
 
-# Your OpenAI API Key (from environment variable)
+# Your OpenAI API Key
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Your Assistant ID
@@ -21,7 +21,7 @@ refresh_token = "1000.1593652c8a26fbd562a19d935a5883d3.279be347d79cbd2cd8f0e3fa7
 # Zoho Token URL
 zoho_token_url = "https://accounts.zoho.com.au/oauth/v2/token"
 
-# Cache the access token in memory
+# Access token cache
 access_token_cache = {
     "token": None,
     "expiry_time": 0
@@ -78,7 +78,7 @@ def chatbot():
                 thread_id=thread.id,
                 run_id=run.id
             )
-            if run_status.status == "completed" or run_status.status == "requires_action":
+            if run_status.status in ["completed", "requires_action"]:
                 break
             time.sleep(1)
         else:
@@ -91,12 +91,12 @@ def chatbot():
 
             for tool_call in tool_calls:
                 if tool_call.function.name == "get_crm_data":
-                    arguments = json.loads(tool_call.function.arguments)  # ✅ Correctly parse JSON
+                    arguments = json.loads(tool_call.function.arguments)
                     project_name = arguments.get("project_name")
                     unit_number = arguments.get("unit_number")
 
                     crm_response = requests.post(
-                        "https://innova-flask-api-1.onrender.com/get_crm_data",  # ✅ Corrected URL
+                        "https://innova-flask-api-1.onrender.com/get_crm_data",
                         json={
                             "project_name": project_name,
                             "unit_number": unit_number
@@ -107,12 +107,12 @@ def chatbot():
                         crm_data = crm_response.json()
                         outputs.append({
                             "tool_call_id": tool_call.id,
-                            "output": f"Project: {crm_data['project_name']}, Unit: {crm_data['unit_number']}, Status: {crm_data['sales_status']}"
+                            "output": crm_data  # ✅ Send raw CRM data, not string
                         })
                     else:
                         outputs.append({
                             "tool_call_id": tool_call.id,
-                            "output": "Error fetching CRM data."
+                            "output": {"error": "Error fetching CRM data."}
                         })
 
             openai.beta.threads.runs.submit_tool_outputs(

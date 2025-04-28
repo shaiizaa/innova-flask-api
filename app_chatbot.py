@@ -169,11 +169,12 @@ def get_crm_data():
         print("CRM Raw Response Text:", response.text)
         response.raise_for_status()
 
-        data = response.json().get("data")
-        if not data:
+        crm_data = response.json().get("data")
+        if not crm_data:
             return jsonify({"message": f"No data found for project {project_name} and unit number {unit_number}."}), 404
 
-        sales_status = data[0].get("Sales_Status", "Not Available")
+        first_record = crm_data[0]
+        sales_status = first_record.get("Sales_Status", "Not Available")
 
         return jsonify({
             "unit_number": unit_number,
@@ -185,6 +186,7 @@ def get_crm_data():
         return jsonify({"error": f"HTTP error occurred: {http_err}"}), 400
     except Exception as err:
         return jsonify({"error": f"Other error occurred: {err}"}), 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

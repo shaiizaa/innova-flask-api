@@ -30,7 +30,8 @@ def chatbot():
             tool_choice="auto"
         )
 
-        while True:
+        # Wait with timeout
+        for _ in range(30):  # Try for 30 seconds max
             run_status = openai.beta.threads.runs.retrieve(
                 thread_id=thread.id,
                 run_id=run.id
@@ -38,6 +39,8 @@ def chatbot():
             if run_status.status == "completed":
                 break
             time.sleep(1)
+        else:
+            return jsonify({"error": "OpenAI Run Timeout"}), 504
 
         messages = openai.beta.threads.messages.list(thread_id=thread.id)
 
@@ -46,12 +49,10 @@ def chatbot():
             if message.role == "assistant":
                 final_reply = message.content[0].text.value
 
-        return jsonify({"reply": final_reply})
+        if final_reply:
+            return jsonify({"reply": final_reply})
+        else:
+            return jsonify({"error": "Assistant did not reply properly"}), 500
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-# Required for Render
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)

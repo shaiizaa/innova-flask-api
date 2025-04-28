@@ -3,6 +3,7 @@ import openai
 import requests
 import time
 import os
+import json
 
 app = Flask(__name__)
 
@@ -90,12 +91,12 @@ def chatbot():
 
             for tool_call in tool_calls:
                 if tool_call.function.name == "get_crm_data":
-                    arguments = tool_call.function.arguments
+                    arguments = json.loads(tool_call.function.arguments)  # ✅ Correctly parse JSON
                     project_name = arguments.get("project_name")
                     unit_number = arguments.get("unit_number")
 
                     crm_response = requests.post(
-                        "http://localhost:5000/get_crm_data",
+                        "https://innova-flask-api-1.onrender.com/get_crm_data",  # ✅ Corrected URL
                         json={
                             "project_name": project_name,
                             "unit_number": unit_number

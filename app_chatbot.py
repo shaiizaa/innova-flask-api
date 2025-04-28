@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 
 # Your OpenAI API Key
-openai.api_key = "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"
+openai.api_key = "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"
 
 # Your Assistant ID
 assistant_id = "asst_5vOUyfiGTLPdBitI9ZcFdX9g"

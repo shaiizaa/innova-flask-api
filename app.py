@@ -69,10 +69,12 @@ def get_crm_data():
             "Authorization": f"Zoho-oauthtoken {access_token}"
         }
 
-        response = requests.get(crm_url, headers=headers)
-        response.raise_for_status()
+       response = requests.get(crm_url, headers=headers)
+       print("CRM Raw Response Text:", response.text)  # 🔥 Add this line
+       response.raise_for_status()
 
-        data = response.json().get("data")
+       data = response.json().get("data")
+
         if not data:
             return jsonify({"message": f"No data found for project {project_name} and unit number {unit_number}."}), 404
 

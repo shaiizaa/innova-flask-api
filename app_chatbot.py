@@ -117,6 +117,7 @@ def get_crm_data():
         }
 
         response = requests.get(crm_url, headers=headers)
+        print("CRM Raw Response Text:", response.text)  # 🔥 Add this line
         response.raise_for_status()
 
         data = response.json().get("data")

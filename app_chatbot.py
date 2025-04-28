@@ -154,19 +154,24 @@ def get_crm_data():
         project_name = data.get('project_name')
         unit_number = data.get('unit_number')
 
+        print(f"Received Request: Project={project_name}, Unit={unit_number}")
+
         if not project_name or not unit_number:
             return jsonify({"error": "Both project name and unit number are required."}), 400
 
         access_token = get_access_token()
 
         crm_url = f"https://www.zohoapis.com.au/crm/v2/Properties/search?criteria=(Project_Name:equals:{project_name})and(Name:equals:{unit_number})"
+        print(f"CRM URL: {crm_url}")
 
         headers = {
             "Authorization": f"Zoho-oauthtoken {access_token}"
         }
 
         response = requests.get(crm_url, headers=headers)
-        print("CRM Raw Response Text:", response.text)
+        print("Raw CRM response status:", response.status_code)
+        print("Raw CRM response text:", response.text)
+
         response.raise_for_status()
 
         crm_data = response.json().get("data")
@@ -185,7 +190,9 @@ def get_crm_data():
     except requests.exceptions.HTTPError as http_err:
         return jsonify({"error": f"HTTP error occurred: {http_err}"}), 400
     except Exception as err:
+        print(f"Full error: {err}")  # <<<< ADD THIS LINE
         return jsonify({"error": f"Other error occurred: {err}"}), 500
+
 
 
 if __name__ == "__main__":

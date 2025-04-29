@@ -61,10 +61,20 @@ def chatbot():
     try:
         user_question = request.json.get("question")
 
-        # Log the incoming question and its extracted parameters
+        # Log the incoming question
         print("User Question:", user_question)
 
-        # Extract project_name and unit_number from the user question
+        # If the user asks about available units, fetch all available units
+        if "available units" in user_question.lower():
+            project_name = extract_project_name(user_question)
+            available_units = fetch_available_units(project_name)
+            if available_units:
+                reply = f"The following units are available in {project_name}: " + ", ".join(available_units)
+            else:
+                reply = f"No units are available in {project_name} at the moment."
+            return jsonify({"reply": reply})
+
+        # For other questions, handle them as usual (e.g., asking about specific unit availability)
         project_name = extract_project_name(user_question)
         unit_number = extract_unit_number(user_question)
 
@@ -96,6 +106,9 @@ def get_crm_data():
 
         if not project_name or not unit_number:
             return jsonify({"error": "Both project name and unit number are required."}), 400
+
+        # Normalize unit number to remove leading zeros
+        unit_number = str(int(unit_number))  # Convert to integer and back to string to remove leading zeros
 
         access_token = get_access_token()  # Get Zoho access token
 
@@ -149,6 +162,32 @@ def extract_unit_number(question):
     # Match phrases like "unit 12", "12", etc.
     match = re.search(r'unit\s*(\d+)|(\d+)', question)
     return match.group(1) if match else "Unknown Unit"
+
+def fetch_available_units(project_name):
+    """Fetch all available units for a given project"""
+    access_token = get_access_token()  # Get Zoho access token
+    crm_url = f"https://www.zohoapis.com.au/crm/v2/Properties/search?criteria=(Project_Name:equals:{project_name})and(Sales_Status:equals:Available)"
+    headers = {
+        "Authorization": f"Zoho-oauthtoken {access_token}"
+    }
+
+    response = requests.get(crm_url, headers=headers)
+    print("Raw CRM Response Status for available units:", response.status_code)
+
+    if response.status_code != 200:
+        return []
+
+    response.raise_for_status()  # Will raise HTTPError for bad status codes
+
+    crm_data = response.json()
+
+    data = crm_data.get("data")
+    if not data:
+        return []
+
+    # Return a list of available unit numbers
+    available_units = [str(unit.get("Name")) for unit in data]
+    return available_units
 
 def generate_reply(sales_status, unit_number):
     """Generate a human-friendly response based on the sales status"""

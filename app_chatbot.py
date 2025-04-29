@@ -151,10 +151,11 @@ def chatbot():
 def get_crm_data():
     try:
         data = request.get_json()
+        print("Received Request JSON:", data)  # 🛑 Add this
+
         project_name = data.get('project_name')
         unit_number = data.get('unit_number')
-
-        print(f"Received Request: Project={project_name}, Unit={unit_number}")
+        print("Project Name:", project_name, "Unit Number:", unit_number)  # 🛑 Add this
 
         if not project_name or not unit_number:
             return jsonify({"error": "Both project name and unit number are required."}), 400
@@ -162,24 +163,22 @@ def get_crm_data():
         access_token = get_access_token()
 
         crm_url = f"https://www.zohoapis.com.au/crm/v2/Properties/search?criteria=(Project_Name:equals:{project_name})and(Name:equals:{unit_number})"
-        print(f"CRM URL: {crm_url}")
+        print("CRM URL:", crm_url)  # 🛑 Add this
 
         headers = {
             "Authorization": f"Zoho-oauthtoken {access_token}"
         }
 
         response = requests.get(crm_url, headers=headers)
-        print("Raw CRM response status:", response.status_code)
-        print("Raw CRM response text:", response.text)
-
+        print("Raw CRM Response Status:", response.status_code)  # 🛑 Add this
+        print("Raw CRM Response Text:", response.text)  # 🛑 Add this
         response.raise_for_status()
 
-        crm_data = response.json().get("data")
-        if not crm_data:
+        data = response.json().get("data")
+        if not data:
             return jsonify({"message": f"No data found for project {project_name} and unit number {unit_number}."}), 404
 
-        first_record = crm_data[0]
-        sales_status = first_record.get("Sales_Status", "Not Available")
+        sales_status = data[0].get("Sales_Status", "Not Available")
 
         return jsonify({
             "unit_number": unit_number,
@@ -188,9 +187,10 @@ def get_crm_data():
         })
 
     except requests.exceptions.HTTPError as http_err:
+        print("HTTP Error:", http_err)  # 🛑 Add this
         return jsonify({"error": f"HTTP error occurred: {http_err}"}), 400
     except Exception as err:
-        print(f"Full error: {err}")  # <<<< ADD THIS LINE
+        print("Other Error:", err)  # 🛑 Add this
         return jsonify({"error": f"Other error occurred: {err}"}), 500
 
 

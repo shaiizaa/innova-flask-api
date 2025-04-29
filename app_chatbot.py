@@ -1,6 +1,7 @@
 import time
 import os
 import json
+import re  # Import the 're' module for regular expressions
 import openai
 import requests
 from flask import Flask, request, jsonify
@@ -16,7 +17,7 @@ assistant_id = "asst_5vOUyfiGTLPdBitI9ZcFdX9g"
 # Zoho OAuth2 Credentials (Make sure to replace with your actual credentials)
 client_id = "1000.U7E96498LL49TB3X09CNIQGPCBA7VH"
 client_secret = "1d11a1dfc83e687a0b0d73bcd497f8cdccf89362ab"
-refresh_token = "1000.f0533c78c44135367d9ae58ae5b34dac.6625dc7b4b3e8bde55155fc4b38ecf16"
+refresh_token = "1000.1593652c8a26fbd562a19d935a5883d3.279be347d79cbd2cd8f0e3fa76c0801e"
 
 # Zoho Token URL
 zoho_token_url = "https://accounts.zoho.com.au/oauth/v2/token"
@@ -133,7 +134,7 @@ def get_crm_data():
 
 
 def extract_project_name(question):
-    # Simple regex or logic to extract project name (for example, "INNOVA Rochedale")
+    # Simple logic to extract project name (for example, "INNOVA Rochedale")
     if "Rochedale" in question:
         return "INNOVA Rochedale"
     # Add more cases as needed

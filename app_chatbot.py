@@ -136,17 +136,18 @@ def get_crm_data():
 
 
 def extract_project_name(question):
-    # Simple logic to extract project name (e.g., "INNOVA Rochedale")
+    """Extract project name from the question using regex"""
     if "Rochedale" in question:
         return "INNOVA Rochedale"
-    if "Shailer Park" in question:
+    elif "Shailer Park" in question:
         return "INNOVA Shailer Park"
     # Add more cases as needed
     return "Unknown Project"
 
 def extract_unit_number(question):
-    # Extract the unit number from the question using regex (e.g., "unit 12")
-    match = re.search(r'unit (\d+)', question)
+    """Extract unit number using regex"""
+    # Match phrases like "unit 12", "12", etc.
+    match = re.search(r'unit\s*(\d+)|(\d+)', question)
     return match.group(1) if match else "Unknown Unit"
 
 def generate_reply(sales_status, unit_number):

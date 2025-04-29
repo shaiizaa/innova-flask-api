@@ -13,46 +13,13 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Your Assistant ID
 assistant_id = "asst_5vOUyfiGTLPdBitI9ZcFdX9g"
 
-# Zoho OAuth2 Credentials
-client_id = "1000.U7E96498LL49TB3X09CNIQGPCBA7VH"
-client_secret = "1d11a1dfc83e687a0b0d73bcd497f8cdccf89362ab"
-refresh_token = "1000.1593652c8a26fbd562a19d935a5883d3.279be347d79cbd2cd8f0e3fa76c0801e"
+# Hardcoded Zoho Access Token for testing
+HARDCODED_ACCESS_TOKEN = "1000.294781f550f0a49d7b168f7126419d15.880742fec380459c3ce491a4127b366d"
 
-# Zoho Token URL
-zoho_token_url = "https://accounts.zoho.com.au/oauth/v2/token"
-
-# Access token cache
-access_token_cache = {
-    "token": None,
-    "expiry_time": 0
-}
 
 def get_access_token():
-    current_time = time.time()
-    if access_token_cache["token"] and current_time < access_token_cache["expiry_time"]:
-        return access_token_cache["token"]
-
-    payload = {
-        "refresh_token": refresh_token,
-        "client_id": client_id,
-        "client_secret": client_secret,
-        "grant_type": "refresh_token"
-    }
-    try:
-        response = requests.post(zoho_token_url, data=payload)
-        response.raise_for_status()
-        tokens = response.json()
-
-        access_token = tokens.get("access_token")
-        expires_in = tokens.get("expires_in", 3600)
-
-        access_token_cache["token"] = access_token
-        access_token_cache["expiry_time"] = current_time + int(expires_in) - 60
-
-        return access_token
-    except Exception as e:
-        print(f"Error fetching access token: {e}")
-        raise
+    # TEMP: use hardcoded token
+    return HARDCODED_ACCESS_TOKEN
 
 @app.route("/chatbot", methods=["POST"])
 def chatbot():
@@ -107,7 +74,7 @@ def chatbot():
                         crm_data = crm_response.json()
                         outputs.append({
                             "tool_call_id": tool_call.id,
-                            "output": crm_data  # ✅ Send raw CRM data, not string
+                            "output": crm_data
                         })
                     else:
                         outputs.append({
@@ -151,11 +118,10 @@ def chatbot():
 def get_crm_data():
     try:
         data = request.get_json()
-        print("Received Request JSON:", data)  # 🛑 Add this
-
+        print("Received Request JSON:", data)
         project_name = data.get('project_name')
         unit_number = data.get('unit_number')
-        print("Project Name:", project_name, "Unit Number:", unit_number)  # 🛑 Add this
+        print("Project Name:", project_name, "Unit Number:", unit_number)
 
         if not project_name or not unit_number:
             return jsonify({"error": "Both project name and unit number are required."}), 400
@@ -163,15 +129,15 @@ def get_crm_data():
         access_token = get_access_token()
 
         crm_url = f"https://www.zohoapis.com.au/crm/v2/Properties/search?criteria=(Project_Name:equals:{project_name})and(Name:equals:{unit_number})"
-        print("CRM URL:", crm_url)  # 🛑 Add this
+        print("CRM URL:", crm_url)
 
         headers = {
             "Authorization": f"Zoho-oauthtoken {access_token}"
         }
 
         response = requests.get(crm_url, headers=headers)
-        print("Raw CRM Response Status:", response.status_code)  # 🛑 Add this
-        print("Raw CRM Response Text:", response.text)  # 🛑 Add this
+        print("Raw CRM Response Status:", response.status_code)
+        print("Raw CRM Response Text:", response.text)
         response.raise_for_status()
 
         data = response.json().get("data")
@@ -187,13 +153,11 @@ def get_crm_data():
         })
 
     except requests.exceptions.HTTPError as http_err:
-        print("HTTP Error:", http_err)  # 🛑 Add this
+        print("HTTP Error:", http_err)
         return jsonify({"error": f"HTTP error occurred: {http_err}"}), 400
     except Exception as err:
-        print("Other Error:", err)  # 🛑 Add this
+        print("Other Error:", err)
         return jsonify({"error": f"Other error occurred: {err}"}), 500
-
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

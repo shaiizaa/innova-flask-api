@@ -4,6 +4,7 @@ import requests
 import time
 import os
 import json
+import urllib.parse  # Added to URL-encode parameters
 
 app = Flask(__name__)
 
@@ -20,6 +21,7 @@ HARDCODED_ACCESS_TOKEN = "1000.294781f550f0a49d7b168f7126419d15.880742fec380459c
 def get_access_token():
     # TEMP: use hardcoded token
     return HARDCODED_ACCESS_TOKEN
+
 
 @app.route("/chatbot", methods=["POST"])
 def chatbot():
@@ -114,38 +116,61 @@ def chatbot():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route("/get_crm_data", methods=["POST"])
 def get_crm_data():
     try:
-        data = request.get_json()
-        print("Received Request JSON:", data)
-        project_name = data.get('project_name')
-        unit_number = data.get('unit_number')
-        print("Project Name:", project_name, "Unit Number:", unit_number)
+        data = request.get_json()  # Get the JSON data sent to this endpoint
+        print("Received Request JSON:", data)  # Log what data we received from OpenAI
 
+        project_name = data.get('project_name')  # Extract the project name
+        unit_number = data.get('unit_number')  # Extract the unit number
+        print("Project Name:", project_name, "Unit Number:", unit_number)  # Log the values we extracted
+
+        # Check if both values are present
         if not project_name or not unit_number:
             return jsonify({"error": "Both project name and unit number are required."}), 400
 
+        # URL encode the project_name and unit_number to avoid issues with special characters
+        project_name = urllib.parse.quote(project_name)
+        unit_number = urllib.parse.quote(unit_number)
+
         access_token = get_access_token()
 
+        # Construct the CRM URL
         crm_url = f"https://www.zohoapis.com.au/crm/v2/Properties/search?criteria=(Project_Name:equals:{project_name})and(Name:equals:{unit_number})"
-        print("CRM URL:", crm_url)
+        print("CRM URL:", crm_url)  # Log the full CRM URL for debugging
 
         headers = {
-            "Authorization": f"Zoho-oauthtoken {access_token}"
+            "Authorization": f"Zoho-oauthtoken {access_token}"  # Authorization header with access token
         }
 
+        # Make the API request to Zoho CRM
         response = requests.get(crm_url, headers=headers)
-        print("Raw CRM Response Status:", response.status_code)
-        print("Raw CRM Response Text:", response.text)
-        response.raise_for_status()
+        print("Raw CRM Response Status:", response.status_code)  # Log the status code (200 means OK)
+        print("Raw CRM Response Text:", response.text)  # Log the raw text from the Zoho CRM response
 
-        data = response.json().get("data")
+        # Check if the response is empty
+        if not response.text:
+            return jsonify({"error": "Empty response from Zoho CRM"}), 500
+
+        response.raise_for_status()  # Will raise HTTPError for bad status codes
+
+        try:
+            crm_data = response.json()  # Parse the JSON response
+        except json.JSONDecodeError as e:
+            return jsonify({"error": f"Error parsing CRM response as JSON: {str(e)}"}), 500
+
+        print("Parsed CRM Response:", crm_data)  # Log the parsed CRM response
+
+        data = crm_data.get("data")  # Extract the 'data' field from the response
         if not data:
             return jsonify({"message": f"No data found for project {project_name} and unit number {unit_number}."}), 404
 
+        # Get the sales status
         sales_status = data[0].get("Sales_Status", "Not Available")
 
+        # Return the result
         return jsonify({
             "unit_number": unit_number,
             "project_name": project_name,
@@ -158,6 +183,7 @@ def get_crm_data():
     except Exception as err:
         print("Other Error:", err)
         return jsonify({"error": f"Other error occurred: {err}"}), 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

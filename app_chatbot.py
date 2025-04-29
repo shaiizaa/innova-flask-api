@@ -61,7 +61,7 @@ def chatbot():
     try:
         user_question = request.json.get("question")
 
-        # Log the incoming question
+        # Log the incoming question and its extracted parameters
         print("User Question:", user_question)
 
         # If the user asks about available units, fetch all available units
@@ -158,10 +158,13 @@ def extract_project_name(question):
     return "Unknown Project"
 
 def extract_unit_number(question):
-    """Extract unit number using regex"""
-    # Match phrases like "unit 12", "12", etc.
+    """Extract unit number using regex and normalize it by removing leading zeros"""
+    # Match phrases like "unit 12", "03", etc.
     match = re.search(r'unit\s*(\d+)|(\d+)', question)
-    return match.group(1) if match else "Unknown Unit"
+    unit_number = match.group(1) if match else "Unknown Unit"
+    
+    # Remove leading zeros from the unit number
+    return str(int(unit_number))  # Converts to integer and back to string to remove leading zeros
 
 def fetch_available_units(project_name):
     """Fetch all available units for a given project"""

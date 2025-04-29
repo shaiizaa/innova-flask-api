@@ -1,7 +1,7 @@
 import time
 import os
 import json
-import re  # Import the 're' module for regular expressions
+import re  # Import 're' for regular expressions
 import openai
 import requests
 from flask import Flask, request, jsonify
@@ -11,10 +11,10 @@ app = Flask(__name__)
 # Your OpenAI API Key (from environment variable)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Your Assistant ID (Make sure to replace with your actual assistant ID)
+# Your Assistant ID
 assistant_id = "asst_5vOUyfiGTLPdBitI9ZcFdX9g"
 
-# Zoho OAuth2 Credentials (Make sure to replace with your actual credentials)
+# Zoho OAuth2 Credentials
 client_id = "1000.U7E96498LL49TB3X09CNIQGPCBA7VH"
 client_secret = "1d11a1dfc83e687a0b0d73bcd497f8cdccf89362ab"
 refresh_token = "1000.1593652c8a26fbd562a19d935a5883d3.279be347d79cbd2cd8f0e3fa76c0801e"
@@ -78,7 +78,9 @@ def chatbot():
 
         if crm_response.status_code == 200:
             crm_data = crm_response.json()
-            return jsonify({"reply": crm_data['sales_status']})
+            # Build a human-friendly reply based on the sales_status
+            reply = generate_reply(crm_data['sales_status'], unit_number)
+            return jsonify({"reply": reply})
         else:
             return jsonify({"error": "Error fetching CRM data"}), 500
 
@@ -134,17 +136,25 @@ def get_crm_data():
 
 
 def extract_project_name(question):
-    # Simple logic to extract project name (for example, "INNOVA Rochedale")
+    # Simple logic to extract project name (e.g., "INNOVA Rochedale")
     if "Rochedale" in question:
         return "INNOVA Rochedale"
+    if "Shailer Park" in question:
+        return "INNOVA Shailer Park"
     # Add more cases as needed
     return "Unknown Project"
 
 def extract_unit_number(question):
-    # Simple regex or logic to extract unit number (for example, "unit 5")
+    # Extract the unit number from the question using regex (e.g., "unit 12")
     match = re.search(r'unit (\d+)', question)
     return match.group(1) if match else "Unknown Unit"
 
+def generate_reply(sales_status, unit_number):
+    """Generate a human-friendly response based on the sales status"""
+    if sales_status == "Available":
+        return f"Unit {unit_number} is currently available."
+    else:
+        return f"Unit {unit_number} is currently unavailable."
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
